@@ -1,11 +1,15 @@
 // ==UserScript==
 // @name        Flaggot
 // @description Flag counter for 4chan
-// @version     1.0.3
+// @version     1.0.4
 // @author      dnsev
 // @namespace   dnsev
-// @include     http://boards.4chan.org/*
-// @include     https://boards.4chan.org/*
+// @include     http*://boards.4chan.org/int/*
+// @include     http*://boards.4chan.org/sp/*
+// @include     http*://boards.4chan.org/pol/*
+// @exclude     http*://boards.4chan.org/int/catalog
+// @exclude     http*://boards.4chan.org/sp/catalog
+// @exclude     http*://boards.4chan.org/pol/catalog
 // @grant       GM_setValue
 // @grant       GM_getValue
 // @homepage    https://github.com/dnsev/flaggot
@@ -146,6 +150,7 @@
 	var post_queue_timer = null;
 	var has_setup = false;
 	var any_user_ids = false;
+	var checkedGets = []; //flagzzzz
 	var flags = {};
 	var posts = {};
 
@@ -185,12 +190,13 @@
 		}, 250);
 	};
 	var process_post = function (post, updates) {
-		var uid, id, flag, flag_data, f;
+		var uid, id, flag, flag_data, f, GET;
 
 		if (
 			(id = get_id_from_post_container(post)) === null ||
 			Object.prototype.hasOwnProperty.call(posts, id) ||
-			(flag = get_flag_from_post_container(post)) === null
+			(flag = get_flag_from_post_container(post)) === null ||
+			(GET = get_GET_from_post_container(post)) === null
 		) {
 			return;
 		}
@@ -212,11 +218,15 @@
 				nodes: create_flag_stat(flag[0], flag[1], f)
 			};
 			node_flag_container.appendChild(flag_data.nodes.container);
-		}
-		else {
+		} else if (checkedGets.indexOf(GET) < 0) { //flagzzzz
 			flag_data = flags[f];
 			flag_data.posts.push(id);
+			checkedGets.push(GET);
 		}
+		//else {
+			//flag_data = flags[f];
+			//flag_data.posts.push(id);
+		//}
 
 		// Get poster ID
 		uid = get_user_id_from_post_container(post);
@@ -261,6 +271,15 @@
 		}
 
 		return [ m[1], n.getAttribute("title") || "" ];
+	};
+	var get_GET_from_post_container = function (container) { //flagzzzz
+		var id = container.getAttribute("id");
+
+		if (id.substring(0,2) !== "pc") {
+			return null;
+		}
+
+		return id.substring(2, id.length);
 	};
 	var get_flag_key = function (flag_data) {
 		return flag_data[1] || flag_data[0];
